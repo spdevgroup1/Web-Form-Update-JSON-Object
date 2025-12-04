@@ -1,0 +1,13 @@
+{
+  "name": "Candy Randy",
+  "age": 25,
+  "address": {
+    "city": "Melbourne",
+    "zip": 3000
+  },
+  "skills": [
+    "JavaScript",
+    "HTML",
+    "CSS"
+  ]
+}

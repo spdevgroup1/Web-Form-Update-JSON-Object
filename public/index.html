@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live JSON Editor</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    fieldset { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+    legend { font-weight: bold; }
+    label { display: block; margin-top: 5px; }
+    input { padding: 5px; width: 250px; }
+    button { margin-top: 15px; padding: 8px 12px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<h2>Live JSON Editor</h2>
+
+<form id="jsonForm"></form>
+<button id="saveBtn" type="button">Save Changes</button>
+
+<h3>Updated JSON:</h3>
+<pre id="output"></pre>
+
+<script>
+let jsonData = {};
+
+// Build form dynamically
+function buildForm(obj, parentKey = "") {
+    let container = document.createElement("fieldset");
+    if (parentKey) {
+        let legend = document.createElement("legend");
+        legend.textContent = parentKey;
+        container.appendChild(legend);
+    }
+
+    for (let key in obj) {
+        if (!obj.hasOwnProperty(key)) continue;
+        let value = obj[key];
+        let fullKey = parentKey ? `${parentKey}.${key}` : key;
+
+        if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            container.appendChild(buildForm(value, fullKey));
+        } else {
+            let label = document.createElement("label");
+            label.textContent = key + ":";
+            let input = document.createElement("input");
+            input.type = "text";
+            input.value = Array.isArray(value) ? value.join(", ") : value;
+            input.dataset.key = fullKey;
+            label.appendChild(input);
+            container.appendChild(label);
+        }
+    }
+    return container;
+}
+
+// Update JSON from form
+function updateJSONFromForm(form, obj) {
+    let inputs = form.querySelectorAll("input");
+    inputs.forEach(input => {
+        let keys = input.dataset.key.split(".");
+        let target = obj;
+        for (let i = 0; i < keys.length - 1; i++) {
+            target = target[keys[i]];
+        }
+        let lastKey = keys[keys.length - 1];
+        let val = input.value.trim();
+
+        if (!isNaN(val) && val !== "") {
+            val = Number(val);
+        }
+        if (Array.isArray(target[lastKey])) {
+            val = val.split(",").map(v => v.trim());
+        }
+        target[lastKey] = val;
+    });
+}
+
+// Load JSON from backend
+fetch("/api/data")
+    .then(res => res.json())
+    .then(data => {
+        jsonData = data;
+        let form = document.getElementById("jsonForm");
+        form.appendChild(buildForm(jsonData));
+        document.getElementById("output").textContent = JSON.stringify(jsonData, null, 2);
+    })
+    .catch(err => {
+        document.getElementById("output").textContent = "Error: " + err.message;
+    });
+
+// Save changes to backend
+document.getElementById("saveBtn").addEventListener("click", () => {
+    updateJSONFromForm(document.getElementById("jsonForm"), jsonData);
+    document.getElementById("output").textContent = JSON.stringify(jsonData, null, 2);
+
+    fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonData)
+    })
+    .then(res => res.json())
+    .then(response => {
+        alert(response.message);
+    })
+    .catch(err => {
+        alert("Error saving data: " + err.message);
+    });
+});
+</script>
+
+</body>
+</html>

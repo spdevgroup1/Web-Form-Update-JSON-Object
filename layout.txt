@@ -1,0 +1,6 @@
+json-editor/
+│
+├── server.js       # Node.js backend
+├── data.json       # JSON file to edit
+└── public/
+    └── index.html  # Frontend editor
